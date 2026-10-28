@@ -32,6 +32,10 @@ ExampleProfiles.yml
 secrets.yml
 secrets.yaml
 
+# Allow sanitized example templates (credentials must be redacted)
+!ExampleProfiles.yml
+!profiles.yml.example
+
 # =============================================================
 # macOS
 # =============================================================
