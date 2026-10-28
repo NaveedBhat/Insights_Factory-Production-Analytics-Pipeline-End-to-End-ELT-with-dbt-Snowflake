@@ -1,0 +1,18 @@
+
+# dbt build artifacts
+target/
+dbt_packages/
+logs/
+
+# Credentials & Secrets  ⚠️  NEVER commit these
+profiles.yml
+*.profiles.yml
+ExampleProfiles.yml
+.env
+.env.*
+*.env
+secrets.yml
+secrets.yaml
+
+# Allow sanitized example templates (credentials are redacted)
+!profiles.yml.example
