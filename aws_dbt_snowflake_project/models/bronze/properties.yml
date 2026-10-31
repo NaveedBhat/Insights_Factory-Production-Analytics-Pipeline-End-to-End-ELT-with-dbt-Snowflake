@@ -1,0 +1,16 @@
+# This file is intentionally left with no active config.
+# Bronze layer materialization is controlled at the parent level in dbt_project.yml:
+#
+#   models:
+#     aws_dbt_snowflake_project:
+#       bronze:
+#         +materialized: table
+#         +schema: bronze
+#
+# You only need to define config here if you want to OVERRIDE
+# the parent-level config for specific models. For example:
+#
+# models:
+#   - name: bronze_listings
+#     config:
+#       materialized: incremental   # overrides parent 'table'

@@ -1,0 +1,25 @@
+version: 2
+
+sources:
+  - name: staging
+    database: INSIGHTS_FACTORY  
+    schema: staging  
+    tables:
+      - name: listings
+        columns:
+          - name: LISTING_ID
+            data_tests:
+              - unique
+              - not_null
+      - name: bookings
+        columns:
+          - name: BOOKING_ID
+            data_tests:
+              - unique
+              - not_null
+      - name: hosts
+        columns:
+          - name: HOST_ID
+            data_tests:
+              - unique
+              - not_null

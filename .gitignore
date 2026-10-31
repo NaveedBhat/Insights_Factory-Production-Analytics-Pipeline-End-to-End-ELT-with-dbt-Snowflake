@@ -20,6 +20,9 @@ target/
 dbt_packages/
 logs/
 
+# dbt internal user tracking file (contains local UUID — not for version control)
+**/.user.yml
+
 # =============================================================
 # Credentials & Secrets  ⚠️  NEVER commit these
 # =============================================================

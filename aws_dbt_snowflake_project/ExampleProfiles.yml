@@ -2,7 +2,7 @@ aws_dbt_snowflake_project:
   outputs:
     dev:
       account: <YOUR_SNOWFLAKE_ACCOUNT>       # e.g. VOQDXVU-***
-      database: AIRBNB
+      database: INSIGHTS_FACTORY
       password: <YOUR_PASSWORD>
       role: ACCOUNTADMIN
       schema: dbt_schema
