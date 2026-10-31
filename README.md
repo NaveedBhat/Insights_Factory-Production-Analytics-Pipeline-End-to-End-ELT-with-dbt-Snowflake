@@ -121,7 +121,7 @@ flowchart TD
 | **Cloud Data Warehouse** | Snowflake | — | Compute + storage, INSIGHTS_FACTORY DB |
 | **Transformation Layer** | dbt Core | 1.12.6 | Models, snapshots, macros, tests |
 | **Snowflake Adapter** | dbt-snowflake | 1.12.4 | Connects dbt to Snowflake |
-| **Cloud Storage** | AWS S3 | — | Upstream source (implied by project stack) |
+| **Cloud Storage** | AWS S3 | — | `snowbucketnavii/source/` — stores raw CSV files, loaded via Snowflake external stage |
 | **Runtime** | Python | 3.13 | Required runtime for dbt |
 | **Package Manager** | uv | latest | Virtual environment + dependency management |
 | **Version Control** | Git + GitHub | — | Source control and remote repository |
@@ -164,8 +164,17 @@ flowchart TD
 AWS_DBT_Snowflake/
 │
 ├── .env                              # ⚠ Secret — DBT_SNOWFLAKE_PASSWORD (git-ignored)
-├── .gitignore                        # Ignores profiles.yml, .env, target/, logs/
+├── .gitignore                        # Ignores profiles.yml, .env, target/, logs/, Notes/
 ├── README.md                         # This file
+│
+├── DDL/                              # One-time Snowflake setup — run before dbt
+│   ├── ddl.sql                       # CREATE TABLE statements for STAGING tables
+│   └── resources.sql                 # S3 file format, external stage & COPY INTO commands
+│
+├── SourceData/                       # Raw CSV source files (uploaded to S3, mirrored here)
+│   ├── bookings.csv                  # 5,000 booking records
+│   ├── hosts.csv                     # 200 host records
+│   └── listings.csv                  # 500 listing records
 │
 └── aws_dbt_snowflake_project/
     │
@@ -580,6 +589,53 @@ These are compiled-but-never-run SQL files used for learning, exploration, and a
 | `for_loop.sql` | Demonstrates Jinja `for` loop to dynamically build SELECT columns |
 | `if_else.sql` | Demonstrates Jinja `if/else` for dynamic WHERE clause injection |
 | `test.sql` | Ad-hoc exploration queries against silver models |
+
+---
+
+## ☁️ AWS S3 + Snowflake — Initial Setup
+
+Before running dbt, the raw source data must exist in Snowflake's `STAGING` schema. This is a **one-time setup** step.
+
+### Data Flow: S3 → Snowflake STAGING
+
+```
+SourceData/              S3 Bucket                  Snowflake
+bookings.csv   ──────►  snowbucketnavii/source/  ──────►  INSIGHTS_FACTORY.STAGING.BOOKINGS
+hosts.csv      ──────►  snowbucketnavii/source/  ──────►  INSIGHTS_FACTORY.STAGING.HOSTS
+listings.csv   ──────►  snowbucketnavii/source/  ──────►  INSIGHTS_FACTORY.STAGING.LISTINGS
+```
+
+### Step 1 — Upload CSVs to S3
+
+Upload the three files from `SourceData/` to your S3 bucket under the `source/` prefix:
+
+| File | Records | S3 Path |
+|---|---|---|
+| `bookings.csv` | 5,000 | `s3://<your-bucket>/source/bookings.csv` |
+| `hosts.csv` | 200 | `s3://<your-bucket>/source/hosts.csv` |
+| `listings.csv` | 500 | `s3://<your-bucket>/source/listings.csv` |
+
+### Step 2 — Run DDL in Snowflake
+
+Open `DDL/ddl.sql` in Snowflake and run it to create the three `STAGING` tables:
+
+```sql
+-- Creates INSIGHTS_FACTORY.STAGING.BOOKINGS / HOSTS / LISTINGS
+-- Run once before any data loading
+```
+
+### Step 3 — Configure & Run resources.sql
+
+Open `DDL/resources.sql`, replace the credential placeholders, then run:
+
+```sql
+-- Creates csv_format file format
+-- Creates snowstage external stage pointing to your S3 bucket
+-- Runs COPY INTO for all three tables
+-- Verifies row counts: 5,000 / 200 / 500
+```
+
+> ⚠️ **Security:** Never commit real AWS credentials. `resources.sql` uses `<YOUR_AWS_KEY_ID>` / `<YOUR_AWS_SECRET_KEY>` placeholders — fill these in directly in Snowflake's worksheet UI, not in the file.
 
 ---
 
