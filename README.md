@@ -114,6 +114,29 @@ flowchart TD
 
 ---
 
+## 🛠️ Tech Stack
+
+| Tool | Version | Role |
+|---|---|---|
+| **dbt Core** | 1.12.6 | Transformation framework — models, snapshots, tests, macros |
+| **dbt-snowflake** | 1.12.4 | Snowflake adapter for dbt |
+| **Snowflake** | — | Cloud data warehouse — compute + storage |
+| **Python** | 3.13 | Runtime for dbt |
+| **uv** | latest | Python package manager / virtual environment |
+
+**Snowflake Configuration:**
+
+| Setting | Value |
+|---|---|
+| Account | `VOQDXVU-XK21252` |
+| Database | `INSIGHTS_FACTORY` |
+| Role | `ACCOUNTADMIN` |
+| Warehouse | `COMPUTE_WH` |
+| Threads | 1 |
+| Target Schema | `dbt_schema` (overridden per layer via `generate_schema_name`) |
+
+---
+
 ## 📁 Project Structure
 
 ```
@@ -536,29 +559,6 @@ These are compiled-but-never-run SQL files used for learning, exploration, and a
 | `for_loop.sql` | Demonstrates Jinja `for` loop to dynamically build SELECT columns |
 | `if_else.sql` | Demonstrates Jinja `if/else` for dynamic WHERE clause injection |
 | `test.sql` | Ad-hoc exploration queries against silver models |
-
----
-
-## 🛠️ Tech Stack
-
-| Tool | Version | Role |
-|---|---|---|
-| **dbt Core** | 1.12.6 | Transformation framework — models, snapshots, tests, macros |
-| **dbt-snowflake** | 1.12.4 | Snowflake adapter for dbt |
-| **Snowflake** | — | Cloud data warehouse — compute + storage |
-| **Python** | 3.13 | Runtime for dbt |
-| **uv** | latest | Python package manager / virtual environment |
-
-**Snowflake Configuration:**
-
-| Setting | Value |
-|---|---|
-| Account | `VOQDXVU-XK21252` |
-| Database | `INSIGHTS_FACTORY` |
-| Role | `ACCOUNTADMIN` |
-| Warehouse | `COMPUTE_WH` |
-| Threads | 1 |
-| Target Schema | `dbt_schema` (overridden per layer via `generate_schema_name`) |
 
 ---
 
