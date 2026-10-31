@@ -96,7 +96,7 @@ flowchart TD
     end
 
     subgraph GLD["🥇  GOLD — Analytics-Ready Star Schema"]
-        OBT[("OBT — One Big Table\n5,000 rows · 35 columns\nMetadata-Driven 3-Way JOIN")]:::obt
+        OBT[("OBT — One Big Table\n5,000 rows · 34 columns\nMetadata-Driven 3-Way JOIN")]:::obt
 
         subgraph EPH["⚡ Ephemeral CTEs  —  never materialized in Snowflake"]
             direction LR
@@ -154,7 +154,7 @@ AWS_DBT_Snowflake/
     ├── ExampleProfiles.yml           # Safe redacted template for sharing
     │
     ├── models/
-    │   ├── properties.yml            # Data tests for all 6 bronze+silver+gold models
+    │   ├── properties.yml            # Data tests for bronze, silver, OBT & fact models (8 models total)
     │   │
     │   ├── sources/
     │   │   └── sources.yml           # Source declarations — INSIGHTS_FACTORY.STAGING.*
@@ -226,7 +226,7 @@ flowchart LR
         sh["silver_hosts\n+ RESPONSE_RATE_QUALITY\n+ HOST_LEVEL"]:::silver
     end
 
-    OBT[("🥇 OBT\nOne Big Table\n5,000 rows · 35 cols")]:::obt
+    OBT[("🥇 OBT\nOne Big Table\n5,000 rows · 34 cols")]:::obt
 
     subgraph E["⚡ Ephemeral CTEs"]
         direction TB
@@ -355,7 +355,7 @@ All three models use the `incremental_filter` macro for watermarking. On first r
 **Materialization:** Table (full rebuild on every run)
 **Purpose:** Denormalized analytics table. Joins all three silver models into one wide table for easy querying. Built using a **metadata-driven pattern** — no hardcoded SQL. To add a new table, add a config dict; zero SQL changes needed.
 
-**Rows:** 5,000 | **Columns:** 35
+**Rows:** 5,000 | **Columns:** 34
 
 **Full column inventory (from all 3 silver models):**
 
@@ -720,7 +720,7 @@ INSIGHTS_FACTORY
  │    └── SILVER_HOSTS
  │
  └── GOLD                 (tables + snapshot tables — dbt managed)
-      ├── OBT              ← One Big Table (5,000 rows · 35 columns)
+      ├── OBT              ← One Big Table (5,000 rows · 34 columns)
       ├── DIM_BOOKINGS     ← SCD2 snapshot (5,000 rows)
       ├── DIM_HOSTS        ← SCD2 snapshot (189 rows)
       ├── DIM_LISTINGS     ← SCD2 snapshot (500 rows)
