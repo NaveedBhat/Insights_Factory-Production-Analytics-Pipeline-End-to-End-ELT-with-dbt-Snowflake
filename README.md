@@ -116,15 +116,36 @@ flowchart TD
 
 ## 🛠️ Tech Stack
 
-| Tool | Version | Role |
-|---|---|---|
-| **dbt Core** | 1.12.6 | Transformation framework — models, snapshots, tests, macros |
-| **dbt-snowflake** | 1.12.4 | Snowflake adapter for dbt |
-| **Snowflake** | — | Cloud data warehouse — compute + storage |
-| **Python** | 3.13 | Runtime for dbt |
-| **uv** | latest | Python package manager / virtual environment |
+| Category | Tool / Technology | Version | Notes |
+|---|---|---|---|
+| **Cloud Data Warehouse** | Snowflake | — | Compute + storage, INSIGHTS_FACTORY DB |
+| **Transformation Layer** | dbt Core | 1.12.6 | Models, snapshots, macros, tests |
+| **Snowflake Adapter** | dbt-snowflake | 1.12.4 | Connects dbt to Snowflake |
+| **Cloud Storage** | AWS S3 | — | Upstream source (implied by project stack) |
+| **Runtime** | Python | 3.13 | Required runtime for dbt |
+| **Package Manager** | uv | latest | Virtual environment + dependency management |
+| **Version Control** | Git + GitHub | — | Source control and remote repository |
 
-**Snowflake Configuration:**
+---
+
+### ⚡ Key dbt Features Used
+
+| Feature | How It's Used in This Project |
+|---|---|
+| **Incremental Models** | Bronze + Silver layers — Snowflake MERGE upsert, watermark filter via `incremental_filter()` macro |
+| **Snapshots (SCD Type 2)** | `dim_bookings`, `dim_hosts`, `dim_listings` — timestamp strategy, `dbt 1.9+` YML config format |
+| **Ephemeral Models** | `gold/ephemeral/` — inline CTEs feeding snapshots, zero extra Snowflake objects |
+| **Custom Macros** | 5 macros: `generate_schema_name`, `incremental_filter`, `safe_divide`, `tag`, `trimmer` |
+| **Jinja Templating** | Metadata-driven `configs` lists in `obt.sql` and `fact.sql` — zero hardcoded SQL paths |
+| **Sources** | `source('staging', 'table')` — declared in `sources.yml` with unique/not_null tests |
+| **`ref()` DAG Lineage** | All models use `ref()` — correct dependency graph, works across dev/staging/prod |
+| **Testing** | 30 data tests across all layers — unique + not_null on every primary key |
+| **Analyses** | 3 compiled-but-unexecuted SQL files for Jinja demos and ad-hoc exploration |
+| **Schema Routing** | `generate_schema_name` macro + `+schema:` in `dbt_project.yml` → clean `BRONZE/SILVER/GOLD` schemas |
+
+---
+
+### ❄️ Snowflake Configuration
 
 | Setting | Value |
 |---|---|
