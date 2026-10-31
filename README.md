@@ -38,31 +38,7 @@ The pipeline processes **5,000 bookings**, **500 listings**, and **189 hosts** e
 
 ---
 
-## Table of Contents
-
-- [Architecture](#architecture)
-- [Project Structure](#project-structure)
-- [Data Flow](#data-flow)
-- [Layers In Detail](#layers-in-detail)
-  - [Sources — Staging](#sources--staging)
-  - [Bronze Layer](#bronze-layer)
-  - [Silver Layer](#silver-layer)
-  - [Gold Layer — OBT](#gold-layer--obt-one-big-table)
-  - [Gold Layer — Star Schema](#gold-layer--star-schema)
-- [Snapshots — SCD Type 2](#snapshots--scd-type-2)
-- [Macros](#macros)
-- [Data Tests](#data-tests)
-- [Analyses](#analyses)
-- [Tech Stack](#tech-stack)
-- [Setup & Installation](#setup--installation)
-- [Environment Variables](#environment-variables)
-- [How to Run](#how-to-run)
-- [Snowflake Objects Created](#snowflake-objects-created)
-- [Key Design Decisions](#key-design-decisions)
-
----
-
-## Architecture
+## 🏗️ Architecture
 
 ```mermaid
 flowchart TD
@@ -138,7 +114,7 @@ flowchart TD
 
 ---
 
-## Project Structure
+## 📁 Project Structure
 
 ```
 AWS_DBT_Snowflake/
@@ -198,7 +174,7 @@ AWS_DBT_Snowflake/
 
 ---
 
-## Data Flow
+## 🔄 Data Flow
 
 ```mermaid
 flowchart LR
@@ -255,7 +231,7 @@ flowchart LR
 
 ---
 
-## Layers In Detail
+## 🗂️ Layers In Detail
 
 ### Sources — Staging
 
@@ -415,7 +391,7 @@ Selects measure and foreign key columns from OBT. Joins dimension snapshots to v
 
 ---
 
-## Snapshots — SCD Type 2
+## 📸 Snapshots — SCD Type 2
 
 **Location:** `snapshots/`
 **Format:** dbt 1.9+ YML-based snapshot config
@@ -447,7 +423,7 @@ This preserves full history — you can query what a host looked like at any poi
 
 ---
 
-## Macros
+## 🧩 Macros
 
 **Location:** `macros/`
 
@@ -514,7 +490,7 @@ UPPER(TRIM(BOOKING_STATUS)) AS BOOKING_STATUS
 
 ---
 
-## Data Tests
+## ✅ Data Tests
 
 **Total: 30 tests — all passing (PASS=30 WARN=0 ERROR=0)**
 
@@ -549,7 +525,7 @@ dbt test
 
 ---
 
-## Analyses
+## 🔬 Analyses
 
 **Location:** `analyses/`
 
@@ -563,7 +539,7 @@ These are compiled-but-never-run SQL files used for learning, exploration, and a
 
 ---
 
-## Tech Stack
+## 🛠️ Tech Stack
 
 | Tool | Version | Role |
 |---|---|---|
@@ -586,7 +562,7 @@ These are compiled-but-never-run SQL files used for learning, exploration, and a
 
 ---
 
-## Setup & Installation
+## ⚙️ Setup & Installation
 
 ### Prerequisites
 - Snowflake account with `INSIGHTS_FACTORY` database and `STAGING` schema populated
@@ -632,7 +608,7 @@ dbt debug                  # tests Snowflake connection
 
 ---
 
-## Environment Variables
+## 🔐 Environment Variables
 
 | Variable | Required | Description |
 |---|---|---|
@@ -642,7 +618,7 @@ dbt debug                  # tests Snowflake connection
 
 ---
 
-## How to Run
+## 🚀 How to Run
 
 > **Always activate the virtual environment and load `.env` before running any dbt command.**
 
@@ -698,7 +674,7 @@ dbt build         # runs all models, snapshots, then all tests in one command
 
 ---
 
-## Snowflake Objects Created
+## ❄️ Snowflake Objects Created
 
 After a full successful run, these objects exist in Snowflake:
 
@@ -731,7 +707,7 @@ INSIGHTS_FACTORY
 
 ---
 
-## Key Design Decisions
+## 💡 Key Design Decisions
 
 ### 1. Metadata-Driven Pipelines
 Both `obt.sql` and `fact.sql` use a Jinja `configs` list to define tables, columns, aliases, and join conditions. This means **zero SQL code changes** are needed to add a new source table — just add a dict to the list. This pattern is used in both the OBT (3-way JOIN) and the Fact table (adds dim joins).
