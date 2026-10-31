@@ -64,47 +64,76 @@ The pipeline processes **5,000 bookings**, **500 listings**, and **189 hosts** e
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                        INSIGHTS_FACTORY DATA PIPELINE                                 │
-│                                                                             │
-│  SOURCE (STAGING)                                                           │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐                      │
-│  │   bookings   │  │   listings   │  │    hosts     │                      │
-│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘                      │
-│         │                 │                 │                               │
-│  ▼ BRONZE (incremental + upsert via MERGE)                                  │
-│  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐           │
-│  │ bronze_bookings  │  │ bronze_listings  │  │  bronze_hosts    │           │
-│  └──────┬───────────┘  └──────┬───────────┘  └──────┬───────────┘           │
-│         │                     │                     │                       │
-│  ▼ SILVER (enriched incremental + business logic + data quality)             │
-│  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐           │
-│  │ silver_bookings  │  │ silver_listings  │  │  silver_hosts    │           │
-│  └──────────────────┘  └──────────────────┘  └──────────────────┘           │
-│         │                     │                     │                       │
-│  ▼ GOLD — OBT (metadata-driven single JOIN table)                            │
-│  ┌──────────────────────────────────────────────────────────────┐            │
-│  │                          obt (5,000 rows · 35 columns)       │            │
-│  └────────────────┬────────────────────┬─────────────────┬──────┘            │
-│                   │                    │                 │                   │
-│  ▼ GOLD — Ephemeral CTEs (never materialized in Snowflake)                   │
-│  ┌─────────────┐  ┌─────────────────┐  ┌─────────────────┐                  │
-│  │  bookings   │  │     hosts       │  │    listings     │                  │
-│  │ (ephemeral) │  │  (ephemeral)    │  │  (ephemeral)    │                  │
-│  └──────┬──────┘  └────────┬────────┘  └────────┬────────┘                  │
-│         │                  │                    │                           │
-│  ▼ GOLD — SCD Type 2 Snapshots (dbt snapshot YML format)                    │
-│  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐                    │
-│  │ dim_bookings  │  │  dim_hosts    │  │ dim_listings  │                    │
-│  │  5,000 rows   │  │  189 rows     │  │  500 rows     │                    │
-│  └───────┬───────┘  └───────┬───────┘  └───────┬───────┘                    │
-│          │                  │                   │                           │
-│  ▼ GOLD — Fact Table (metadata-driven, joins obt + dims)                    │
-│  ┌──────────────────────────────────────────────────────────────┐            │
-│  │                    fact  (5,000 rows)                        │            │
-│  └──────────────────────────────────────────────────────────────┘            │
-└─────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    classDef staging  fill:#2E86C1,stroke:#1A5276,color:#fff,font-weight:bold
+    classDef bronze   fill:#A04000,stroke:#784212,color:#fff,font-weight:bold
+    classDef silver   fill:#717D7E,stroke:#4D5656,color:#fff,font-weight:bold
+    classDef obt      fill:#B7950B,stroke:#9A7D0A,color:#fff,font-weight:bold
+    classDef ephemeral fill:#6C3483,stroke:#4A235A,color:#fff,font-weight:bold
+    classDef snapshot fill:#1E8449,stroke:#145A32,color:#fff,font-weight:bold
+    classDef fact     fill:#117A65,stroke:#0E6655,color:#fff,font-weight:bold
+
+    subgraph SRC["🗄️  SOURCE — INSIGHTS_FACTORY.STAGING"]
+        direction LR
+        s1([📋 bookings]):::staging
+        s2([🏠 listings]):::staging
+        s3([👤 hosts]):::staging
+    end
+
+    subgraph BRZ["🥉  BRONZE — Incremental Load + MERGE Upsert"]
+        direction LR
+        b1[bronze_bookings]:::bronze
+        b2[bronze_listings]:::bronze
+        b3[bronze_hosts]:::bronze
+    end
+
+    subgraph SLV["🥈  SILVER — Enriched · Business Logic · Data Quality"]
+        direction LR
+        sv1["silver_bookings\nTOTAL_AMOUNT · EFFECTIVE_NIGHTLY_RATE · IS_CONFIRMED"]:::silver
+        sv2["silver_listings\nPRICE_CATEGORY · IS_ENTIRE_HOME · CAPACITY_CATEGORY"]:::silver
+        sv3["silver_hosts\nRESPONSE_RATE_QUALITY · YEARS_AS_HOST · HOST_LEVEL"]:::silver
+    end
+
+    subgraph GLD["🥇  GOLD — Analytics-Ready Star Schema"]
+        OBT[("OBT — One Big Table\n5,000 rows · 35 columns\nMetadata-Driven 3-Way JOIN")]:::obt
+
+        subgraph EPH["⚡ Ephemeral CTEs  —  never materialized in Snowflake"]
+            direction LR
+            e1{{"bookings\n(ephemeral)"}}:::ephemeral
+            e2{{"hosts\n(ephemeral)"}}:::ephemeral
+            e3{{"listings\n(ephemeral)"}}:::ephemeral
+        end
+
+        subgraph DIM["📸 SCD Type 2 Snapshots  —  dbt 1.9+ YML format"]
+            direction LR
+            d1[("dim_bookings\n5,000 rows")]:::snapshot
+            d2[("dim_hosts\n189 rows")]:::snapshot
+            d3[("dim_listings\n500 rows")]:::snapshot
+        end
+
+        FACT[["⭐ FACT TABLE\n5,000 rows\nMetadata-Driven JOIN"]]:::fact
+    end
+
+    s1 --> b1
+    s2 --> b2
+    s3 --> b3
+    b1 --> sv1
+    b2 --> sv2
+    b3 --> sv3
+    sv1 --> OBT
+    sv2 --> OBT
+    sv3 --> OBT
+    OBT --> e1
+    OBT --> e2
+    OBT --> e3
+    e1 --> d1
+    e2 --> d2
+    e3 --> d3
+    OBT --> FACT
+    d1 --> FACT
+    d2 --> FACT
+    d3 --> FACT
 ```
 
 ---
@@ -171,19 +200,57 @@ AWS_DBT_Snowflake/
 
 ## Data Flow
 
-```
-INSIGHTS_FACTORY.STAGING.bookings   ──►  bronze_bookings  ──►  silver_bookings  ──┐
-INSIGHTS_FACTORY.STAGING.listings   ──►  bronze_listings  ──►  silver_listings  ──┼──►  obt  ──►  fact
-INSIGHTS_FACTORY.STAGING.hosts      ──►  bronze_hosts     ──►  silver_hosts     ──┘      │
-                                                                                │
-                                                              ┌─────────────────┤
-                                                              │                 │
-                                                         ephemeral CTEs         │
-                                                     (bookings/hosts/listings)  │
-                                                              │                 │
-                                                      dbt snapshot (SCD2)      │
-                                                   dim_bookings / dim_hosts     │
-                                                       / dim_listings  ──────────┘
+```mermaid
+flowchart LR
+    classDef source   fill:#2E86C1,stroke:#1A5276,color:#fff,font-weight:bold
+    classDef bronze   fill:#A04000,stroke:#784212,color:#fff,font-weight:bold
+    classDef silver   fill:#717D7E,stroke:#4D5656,color:#fff,font-weight:bold
+    classDef obt      fill:#B7950B,stroke:#9A7D0A,color:#fff,font-weight:bold
+    classDef ephemeral fill:#6C3483,stroke:#4A235A,color:#fff,font-weight:bold
+    classDef snapshot fill:#1E8449,stroke:#145A32,color:#fff,font-weight:bold
+    classDef fact     fill:#117A65,stroke:#0E6655,color:#fff,font-weight:bold
+
+    RAW[("🗄️ STAGING\nRaw Source Data\nINSIGHTS_FACTORY")]:::source
+
+    subgraph B["🥉 Bronze Layer"]
+        direction TB
+        bb[bronze_bookings]:::bronze
+        bl[bronze_listings]:::bronze
+        bh[bronze_hosts]:::bronze
+    end
+
+    subgraph S["🥈 Silver Layer"]
+        direction TB
+        sb["silver_bookings\n+ TOTAL_AMOUNT\n+ EFFECTIVE_NIGHTLY_RATE"]:::silver
+        sl["silver_listings\n+ PRICE_CATEGORY\n+ IS_ENTIRE_HOME"]:::silver
+        sh["silver_hosts\n+ RESPONSE_RATE_QUALITY\n+ HOST_LEVEL"]:::silver
+    end
+
+    OBT[("🥇 OBT\nOne Big Table\n5,000 rows · 35 cols")]:::obt
+
+    subgraph E["⚡ Ephemeral CTEs"]
+        direction TB
+        e1{{"bookings"}}:::ephemeral
+        e2{{"hosts"}}:::ephemeral
+        e3{{"listings"}}:::ephemeral
+    end
+
+    subgraph D["📸 SCD2 Dimensions"]
+        direction TB
+        d1[("dim_bookings\n5,000 rows")]:::snapshot
+        d2[("dim_hosts\n189 rows")]:::snapshot
+        d3[("dim_listings\n500 rows")]:::snapshot
+    end
+
+    FACT[["⭐ FACT TABLE\n5,000 rows"]]:::fact
+
+    RAW -->|"source()"| B
+    B -->|"ref()"| S
+    S -->|"ref()\nmetadata-driven\n3-way JOIN"| OBT
+    OBT -->|"SELECT DISTINCT\nfrom OBT"| E
+    E -->|"dbt snapshot\nSCD Type 2"| D
+    OBT -->|"ref()"| FACT
+    D -->|"ref()\nFK validation"| FACT
 ```
 
 ---
